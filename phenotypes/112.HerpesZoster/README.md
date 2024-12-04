@@ -1,0 +1,1 @@
+https://phekb.org/phenotype/herpes-zoster
