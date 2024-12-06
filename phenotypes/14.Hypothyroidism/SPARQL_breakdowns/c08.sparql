@@ -1,0 +1,43 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c08_dxCaseCtrlExclCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c08_dxCaseCtrlExclCnt_emerge2 {
+        ?patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+	select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+            GRAPH fc:emergeCohort2 {
+                fc:cohort fc:contains ?patient .
+            }
+
+            SERVICE <http://localhost:8080/sparql> {
+			
+                ?patient a fhir:Patient;
+                    fhir:Resource.id [ fhir:value ?patient_id].
+                ?condition a fhir:Condition;
+                    fhir:Condition.subject [fhir:link ?patient];
+                    fhir:Condition.code[
+                            fhir:CodeableConcept.id[fhir:value ?DxCaseCtrlExcl_codes]];
+                    fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+                    BIND(xsd:date(?eventDateTime) AS ?eventDate)
+                    #fhir:Condition.abatementDateTime[fhir:value ?condition_endDate].
+                    #series of Case/Control thyroid disease exclusion ICD 9 codes
+                    FILTER(?DxCaseCtrlExcl_codes IN ( '21013716','40248954','21000499','21000554','21000581','21000610','21002963','40248953','40249011','22856','27826','30678','132583','133727','134312','134619','134608','135778','136932','137820','139774','140062','140976','4030042','24612','134618','138717','199775','28127','133436','4131812','133424','35305563','35506554','35506786','35506790','35506793','35506795','35506797','35506800','35305565','35305566','35305564','35506808'))
+                    
+                
+            }
+        }
+        GROUP BY ?patient
+    }
+

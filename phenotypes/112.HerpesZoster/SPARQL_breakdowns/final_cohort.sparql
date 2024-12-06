@@ -1,0 +1,34 @@
+#==============================================================================================================================================
+#ph_herpeszosterphenotype_pCtrl_emerge2
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+#filter the patients who meet the criteria for the control group
+INSERT {
+    GRAPH fc:ph_herpeszosterphenotype_pCtrl_emerge2{
+        fc:pCtrl fc:control_patient ?patient .
+    }
+}
+WHERE{
+SELECT DISTINCT ?patient
+WHERE{
+
+     {GRAPH fc:herpes_zoster_c00_age  { ?patient fc:age ?c00. } 
+            filter(?c00 >=40)
+    }
+  #look for patients who also exsits in c03
+    FILTER EXISTS{ { GRAPH fc:herpes_zoster_c03   { ?patient fc:visit_sequence ?c03.} FILTER(?c03 >=1)  }}
+  #look for patients who do not have a c04 value thats larger and equal to 2
+    FILTER NOT EXISTS{  {  GRAPH fc:herpes_zoster_c04_dxHivCnt   { ?patient fc:datecount ?c04.}  FILTER(?c04>=2)}}
+  #look for patients who do not exist in c01
+    FILTER NOT EXISTS  {GRAPH fc:herpes_zoster_c01_dxZosterCnt {?patient fc:datecount ?c01.}}
+
+        }
+  
+}

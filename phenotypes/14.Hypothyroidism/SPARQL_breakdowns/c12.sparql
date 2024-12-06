@@ -1,0 +1,87 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c12_rxCaseNoPregnancyCnt_checkInPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c12_rxCaseNoPregnancyCnt_emerge2{
+        ?patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+
+            GRAPH example_graph:ph_hyporxcase	{
+                    example:ph_hyporxcase example:includesCode ?RxCase_codes
+                }
+            GRAPH fc:pregnantPatients_emerge2 {
+            fc:pregnant_patients fc:contains ?pregnant_patient.
+            ?pregnant_patient fc:pregnancystartDate ?pregnancystartDate.
+            ?pregnant_patient fc:pregnancyendDate ?pregnancyendDate. 
+      		  }
+
+            SERVICE <http://localhost:8080/sparql> 
+            	{
+
+         ?medicationStatement a fhir:MedicationStatement;
+          fhir:MedicationStatement.subject [fhir:link ?pregnant_patient];
+            fhir:MedicationStatement.medicationCodeableConcept[
+                    fhir:CodeableConcept.id[fhir:value ?RxCase_codes]];
+            fhir:MedicationStatement.effectiveDateTime[fhir:value ?eventDateTime].
+            #fhir:Condition.abatementDateTime[fhir:value ?condition_endDate].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+     }
+		 FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+        }
+        GROUP BY ?patient
+    }
+
+
+#c12_rxCaseNoPregnancyCnt_checkNOPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c12_rxCaseNoPregnancyCnt_emerge2{
+        ?not_pregnant_patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+select ?not_pregnant_patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+            GRAPH example_graph:ph_hyporxcase	{
+                  example:ph_hyporxcase example:includesCode ?RxCase_codes
+                }
+              GRAPH fc:not_pregnant_patient_emerge2{
+        		fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+    			}
+      
+
+            SERVICE <http://localhost:8080/sparql> 
+            	{
+                 ?medicationStatement a fhir:MedicationStatement;
+                  fhir:MedicationStatement.subject [fhir:link ?not_pregnant_patient];
+                    fhir:MedicationStatement.medicationCodeableConcept[
+                            fhir:CodeableConcept.id[fhir:value ?RxCase_codes]];
+                    fhir:MedicationStatement.effectiveDateTime[fhir:value ?eventDateTime].
+                 BIND(xsd:date(?eventDateTime) AS ?eventDate)
+                    #fhir:Condition.abatementDateTime[fhir:value ?condition_endDate].
+	        }
+      
+     }
+        GROUP BY ?not_pregnant_patient
+    }

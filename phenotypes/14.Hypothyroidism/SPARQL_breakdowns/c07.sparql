@@ -1,0 +1,44 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c07_noresult 
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c07_procRadiationCnt_emerge2 {
+        ?patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+            GRAPH fc:emergeCohort2 {
+                fc:cohort fc:contains ?patient .
+            }
+
+            SERVICE <http://localhost:8080/sparql> {
+                
+                    ?patient a fhir:Patient;
+                    fhir:Resource.id [ fhir:value ?patient_id].
+                    ?Procedure a fhir:Procedure;
+                    fhir:Procedure.subject [fhir:link ?patient];
+                    fhir:Procedure.performedDateTime[fhir:value ?eventDateTime];
+                    fhir:Procedure.code [
+                                fhir:CodeableConcept.id[fhir:value ?codes]].
+                    BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+            
+                # codes for radiation therapies - OMOP CDM standardized ICD9 codes or CPT codes
+                FILTER(?codes IN ('2211835','2211834','2211832','2211833','2211831','2211839','2211843','2211841','2211842','2211840','2211837','2211838','2211836','2211852','2211847','2211846','2211845','2211851','2211850','2211848','2211849','2211844','2211853','2211862','2211861','2211860','2211859','2211857','2211858','2211870','2211867','2211869','2211868','2211866','2211865','2211864','2211872','2211880','2211878','2211877','2211876','2211871','2211881','2211882','2211883','2211884','2211885','2211893','2211896','2211894','2211892','2211897','2211895','2211891','2211906','2211907','2211905','42737621','42737624','42737623','42737622'))
+        
+                
+                }
+        }
+        GROUP BY ?patient
+        
+    }

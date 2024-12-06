@@ -1,0 +1,45 @@
+#==============================================================================================================================================
+#herpes_zoster_c04_dxHivCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:herpes_zoster_c04_dxHivCnt {
+			?patient fc:datecount ?datecount.
+    }
+}
+    WHERE {
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+        SELECT ?patient (count(distinct ?eventDate) AS ?datecount)
+
+       WHERE {
+        ?patient a fhir:Patient;
+			fhir:Patient.birthDate [ fhir:value ?birthdate];
+            fhir:Resource.id [ fhir:value ?patient_id].
+             ?condition a fhir:Condition;
+            fhir:Condition.subject [fhir:link ?patient];
+            fhir:Condition.code[                    
+                    fhir:CodeableConcept.id[fhir:value ?dxHiv]];
+            fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+            #getting patients with matching conditions in DxHiv(HIV infection) using OMOP CDM standardized ICD codes.
+            FILTER(
+                ?dxHiv IN('21000158','21000160','21000161','21000162','21000397','21000885','21004037','21004839','21007238','21007244','21007245','21007278','21013495','21013812','40249000','439727','36009928')		
+)
+     
+        }
+          GROUP BY ?patient
+    } 
+    } 

@@ -1,0 +1,44 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c04 - takes a few minutes to run 
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c04_rxCaseCnt_emerge2 {
+			?patient fc:datecount ?datecount.
+    }
+}
+WHERE{
+select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+ GRAPH example_graph:ph_hyporxcase	{
+		example:ph_hyporxcase example:includesCode ?RxCase_codes
+    }
+    SERVICE <http://localhost:8080/sparql>
+        {
+     
+          ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+         ?medicationStatement a fhir:MedicationStatement;
+          fhir:MedicationStatement.subject [fhir:link ?patient];
+            fhir:MedicationStatement.medicationCodeableConcept[
+                    fhir:CodeableConcept.id[fhir:value ?RxCase_codes]];
+            fhir:MedicationStatement.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+
+         } 
+
+    } 
+    GROUP BY ?patient
+}
+

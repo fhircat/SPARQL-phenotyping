@@ -1,0 +1,41 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c10_dxCtrlExclCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c10_dxCtrlExclCnt_emerge2{
+        ?patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+            GRAPH fc:emergeCohort2 {
+                fc:cohort fc:contains ?patient .
+            }
+  SERVICE <http://localhost:8080/sparql> {
+			
+            ?patient a fhir:Patient;
+                fhir:Resource.id [ fhir:value ?patient_id].
+            ?condition a fhir:Condition;
+                fhir:Condition.subject [fhir:link ?patient];
+                fhir:Condition.code[
+                        fhir:CodeableConcept.id[fhir:value ?DxCtrlExcl_codes]];
+                fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+                BIND(xsd:date(?eventDateTime) AS ?eventDate)
+                #fhir:Condition.abatementDateTime[fhir:value ?condition_endDate].
+                #control exclusion list of conditions - OMOP CDM standardized ICD9 codes  
+                FILTER(?DxCtrlExcl_codes IN ( '21003009','21013716','40248955','21000581','21001150','21002963','43534897','21000589','21000588','21000587','21000583','21000591','21003004','21005289','21000422','21000577','21000578','21000584','76685','132583','132584','132579','133444','133727','133737','134312','134619','134608','134898','135215','135778','135772','135779','136368','136661','136932','136933','137519','137520','137820','138113','138387','138711','138718','139774','140062','140976','141825','4030042','134618','138717','140364','133436','138384','4099641','140673','4030055','4215003','133728','141253','4095918','35506769','35506764','35506770','35506767','35506771','35506768','35506774','35506782','35506786','35506790','35506793','35506795','35506797','35506800','35506810','36009825','4205728','35506772','37522104','36009826','35305570','35506777'))
+                
+        
+            }
+        }
+        GROUP BY ?patient
+    }

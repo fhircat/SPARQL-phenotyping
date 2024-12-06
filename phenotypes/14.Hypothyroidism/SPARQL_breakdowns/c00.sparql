@@ -1,0 +1,49 @@
+#===============================================================================================================================================================================================================================================================================================================
+#filter for all patients and datecounts of hypothyroidism diagnosis regardless of their pregnancy status
+#c00
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c00_dxHypothyroidismCnt_emerge2 {
+			?patient fc:datecount ?datecount.
+    }
+}
+
+    WHERE {
+
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+        SELECT ?patient (count(distinct ?eventDate) AS ?datecount)
+
+        WHERE {
+        ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+        ?condition a fhir:Condition;
+            fhir:Condition.subject [fhir:link ?patient];
+            fhir:Condition.code[
+                    fhir:CodeableConcept.id[fhir:value ?dxHypothyroidism_codes]];
+            fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            BIND(-999 AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for hypothyroidism - OMOP CDM standardized ICD 9 codes
+            FILTER(?dxHypothyroidism_codes IN ( '21000589','21000588','21000587','21000583','132583','132579','133444','133737','135215','135779','137520','137820','138711','140062','138384','140673','35506769','35506764','35506770','35506767','35506771','35506768','35506797','35506800'))
+     
+        }
+          GROUP BY ?patient
+
+    } 
+    } 
+

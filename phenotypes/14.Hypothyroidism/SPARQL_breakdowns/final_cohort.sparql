@@ -1,0 +1,127 @@
+#===============================================================================================================================================================================================================================================================================================================
+#ph_hypophenotype_CASE
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:ph_hypophenotype_CASE_emerge2_days{
+        fc:pCase fc:case_patient ?patient .
+    }
+}
+
+WHERE{
+SELECT DISTINCT ?patient 
+WHERE {
+    {
+        SELECT DISTINCT ?patient
+        WHERE {
+            {
+                GRAPH fc:c02_full_emerge2 { ?patient fc:datecount ?c02. }
+            }
+            UNION
+            {
+                GRAPH fc:c01_dxHypothyroidismNoPregnancyCnt_emerge2 { ?patient fc:datecount ?c01. }
+            }
+        }
+    }
+         FILTER EXISTS { 
+         GRAPH fc:c12_rxCaseNoPregnancyCnt_emerge2  { ?patient fc:datecount ?c12 .}}
+        
+         FILTER EXISTS {
+           GRAPH fc:c06_timeDiffRxLab_emerge2_eventDate{ ?patient fc:timeDiffRxLab ?c06. }
+        FILTER (?c06 >= 90)
+    }
+
+     FILTER NOT EXISTS {
+            GRAPH fc:c07_procRadiationCnt_emerge2 { ?patient fc:datecount ?c07 .  }
+        } 
+        #07 is empty
+        
+    FILTER NOT EXISTS {
+        GRAPH fc:c08_dxCaseCtrlExclCnt_emerge2 { ?patient fc:datecount ?c08. }
+    }          
+        
+     FILTER NOT EXISTS {     
+            GRAPH fc:c09_procThyroidectomyCnt_emerge2 { ?patient fc:datecount ?datecount .  }}
+# c09 has No Result in the initial 28000 patient
+        
+	FILTER NOT EXISTS {
+        GRAPH fc:c05_rxThyroidAlteringCnt_emerge2 { ?patient fc:datecount ?c05. }
+    }
+}
+}
+
+#===============================================================================================================================================================================================================================================================================================================
+#ph_hypophenotype_Control
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:ph_hypophenotype_Control_emerge2_days{
+        fc:pControl fc:control_patient ?patient .
+    }
+}
+
+WHERE{
+SELECT DISTINCT ?patient 
+WHERE {
+    {
+        SELECT DISTINCT ?patient
+        WHERE {
+                
+                GRAPH fc:c03_full_emerge2_FIXED { ?patient fc:datecount ?c03.     }
+                
+             
+            
+        }
+    }
+        FILTER NOT EXISTS {
+        GRAPH fc:c00_dxHypothyroidismCnt_emerge2 {	?patient fc:datecount ?c00.   }
+        }
+        FILTER NOT EXISTS {   
+            GRAPH fc:c04_rxCaseCnt_emerge2 { ?patient fc:datecount ?c04. }
+        }
+        FILTER EXISTS {
+            {  GRAPH fc:c11_rxAnyMedCnt_dates_emerge2{    ?patient fc:datecount ?c11 . }
+            }
+               UNION{
+                optional {GRAPH fc:c13_pmhNtExistence_emerge2 {
+        ?patient fc:datecount ?c13_value.     }
+            }
+            }
+            BIND(COALESCE(?c13_value,0) AS ?c13)
+#            we do not have ?c13 value because it is nlp related
+            FILTER(?c11+?c13>=2)
+        }
+        FILTER NOT EXISTS {
+        GRAPH fc:c05_rxThyroidAlteringCnt_emerge2 { ?patient fc:datecount ?c05. }
+    }
+         FILTER NOT EXISTS {
+            GRAPH fc:c07_procRadiationCnt_emerge2 { ?patient fc:datecount ?c07 .  }
+        } 
+    
+    FILTER NOT EXISTS {
+        GRAPH fc:c08_dxCaseCtrlExclCnt_emerge2 { ?patient fc:datecount ?c08. }
+    }          
+        
+     FILTER NOT EXISTS {     
+            GRAPH fc:c09_procThyroidectomyCnt_emerge2 { ?patient fc:datecount ?c09 .  }}
+# c09 has No Result in the initial 28000 patient
+         FILTER NOT EXISTS {
+            GRAPH fc:c10_dxCtrlExclCnt_emerge2 { ?patient fc:datecount ?c10 .  }
+        } 
+	
+}
+}

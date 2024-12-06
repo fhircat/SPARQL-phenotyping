@@ -1,0 +1,104 @@
+#===============================================================================================================================================================================================================================================================================================================   
+#filter for patients who have pregnancy records with hypothyroidism diagnosis. check for the date of hypothyroidism diagnosis and pregnancy start and end dates
+#c01_checkInPregnancy_dxHypothyroidismNoPregnancyCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c01_dxHypothyroidismNoPregnancyCnt_emerge2 {
+			?patient fc:datecount ?datecount.
+    }
+}
+WHERE{
+SELECT ?patient (count(distinct ?eventDate) AS ?datecount)
+
+    WHERE{
+
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+     GRAPH fc:pregnantPatients_emerge2  {
+        ?patient fc:pregnancystartDate ?pregnancystartDate.
+        ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+        ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+        ?condition a fhir:Condition;
+            fhir:Condition.subject [fhir:link ?patient];
+            fhir:Condition.code[
+                    fhir:CodeableConcept.id[fhir:value ?dxHypothyroidism_codes]];
+            fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            # codes for hypothyroidism - OMOP CDM standardized ICD 9 codes
+            FILTER(?dxHypothyroidism_codes IN ( '21000589','21000588','21000587','21000583','132583','132579','133444','133737','135215','135779','137520','137820','138711','140062','138384','140673','35506769','35506764','35506770','35506767','35506771','35506768','35506797','35506800'))
+
+    }    
+
+     FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+
+    }
+    
+
+    GROUP by ?patient
+    ORDER BY ?patient_id
+}
+
+#-----------------------------------------------------------------------------------------
+#filter for patients who have no pregnancy records with hypothyroidism diagnosis and add the query result to the previous named graph
+#c01_checkNOPregnancy_dxHypothyroidismNoPregnancyCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c01_dxHypothyroidismNoPregnancyCnt_emerge2 {
+			?not_pregnant_patient fc:datecount ?datecount.
+    }
+}
+
+WHERE{
+SELECT ?not_pregnant_patient  (count(distinct ?eventDate) AS ?datecount)
+WHERE{
+
+  SELECT distinct ?not_pregnant_patient ?eventDate ?dxHypothyroidism_codes
+
+    WHERE {
+
+    GRAPH fc:not_pregnant_patient_emerge2{
+        fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+    }
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+
+        ?condition a fhir:Condition;
+            fhir:Condition.subject [fhir:link ?not_pregnant_patient];
+            fhir:Condition.code[
+                    fhir:CodeableConcept.id[fhir:value ?dxHypothyroidism_codes]];
+            fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            # codes for hypothyroidism - OMOP CDM standardized ICD 9 codes
+            FILTER(?dxHypothyroidism_codes IN ( '21000589','21000588','21000587','21000583','132583','132579','133444','133737','135215','135779','137520','137820','138711','140062','138384','140673','35506769','35506764','35506770','35506767','35506771','35506768','35506797','35506800'))
+        }
+    
+
+    }
+ 
+    }group by ?not_pregnant_patient
+}

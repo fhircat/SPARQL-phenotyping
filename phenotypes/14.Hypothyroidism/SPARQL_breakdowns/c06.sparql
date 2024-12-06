@@ -1,0 +1,534 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c06_01_RxCaseNoPregnancy_checkINPregnancy - takes a few minutes to run
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_01_RxCaseNoPregnancy_emerge2_eventDate {
+        ?patient fc:eventDate ?eventDate.
+    }
+    
+}
+
+WHERE{
+    SELECT distinct ?patient ?eventDate
+	WHERE {
+		GRAPH example_graph:ph_hyporxcase {
+        example:ph_hyporxcase example:includesCode ?RxCase_codes
+    }
+        GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+         GRAPH fc:pregnantPatients_emerge2  {
+            ?patient fc:pregnancystartDate ?pregnancystartDate.
+            ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+      SERVICE <http://localhost:8080/sparql>
+        {
+         ?medicationStatement a fhir:MedicationStatement;
+          fhir:MedicationStatement.subject [fhir:link ?patient];
+            fhir:MedicationStatement.medicationCodeableConcept[
+                    fhir:CodeableConcept.id[fhir:value ?RxCase_codes]];
+            fhir:MedicationStatement.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+    }
+            # BIND(xsd:date(?eventDateTime) as ?date)
+ FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+}
+}
+
+
+#c06_01_RxCaseNoPregnancy_checkNOPregnancy - takes a few minutes to run
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_01_RxCaseNoPregnancy_emerge2_eventDate {
+        ?not_pregnant_patient fc:eventDate ?eventDate.
+    }
+    
+}
+
+WHERE{
+    SELECT distinct ?not_pregnant_patient  ?eventDate
+    WHERE {
+    GRAPH example_graph:ph_hyporxcase {
+        example:ph_hyporxcase example:includesCode ?RxCase_codes
+    }
+       GRAPH fc:not_pregnant_patient_emerge2{
+        fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+    }
+      SERVICE <http://localhost:8080/sparql>
+        {
+         ?medicationStatement a fhir:MedicationStatement;
+          fhir:MedicationStatement.subject [fhir:link ?not_pregnant_patient];
+            fhir:MedicationStatement.medicationCodeableConcept[
+                    fhir:CodeableConcept.id[fhir:value ?RxCase_codes]];
+            fhir:MedicationStatement.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+    }
+}
+}
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#c06_02_LabTshNoPregnancy_checkInPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_02_LabTshNoPregnancy_emerge2_eventDate {
+        ?patient fc:eventDate ?eventDate.
+    }
+}
+WHERE{
+          SELECT distinct ?patient ?eventDate
+	WHERE {
+     GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+     GRAPH fc:pregnantPatients_emerge2  {
+        ?patient fc:pregnancystartDate ?pregnancystartDate.
+        ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+    SERVICE <http://localhost:8080/sparql>
+
+    	 {
+          ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+         ?observation a fhir:Observation;
+          fhir:Observation.subject [fhir:link ?patient];
+            fhir:Observation.code ?ob_code.
+            ?ob_code fhir:CodeableConcept.id [fhir:value ?codes].
+         ?observation fhir:Observation.valueQuantity ?valueQuantity.
+         ?valueQuantity fhir:Quantity.value [fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+ 
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for TSH lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ( '3001019','3004094','3005832','3006499','3007383','3015011','3019025','3028165','3044958','3048812','3051689','40759714','40761927','3006977','3030538','3035921','3038819','3040341','3045302','3046029','3052637','40760963','3004135','3011025','3017564','3027700','3030381','3030695','3050085','3052705','3005961','3006721','3009559','3017044','3019762','3030198','3040558','40760528','40768056','3005758','3011450','3016606','3017338','3029985','3052034','40766098','42870560','3009621','3014707','3019170','3028037','3030277','3037142','3040751','40758491','3028091','3029973','3040407','40766096','3001592','3016692','3016806','3030379','3037152','3043515','3051723','40766097','3003316','3008795','3016152','3016735','3027387','3045848','3052951','40761928','3009142','3013943','3024528','3030188','3032069','3038369','40758591','40766095','3047177','3029406','3001281','3005951','3030362','3005711','3030018','3002382','3006939','3018930','3022769','3047203','3009201','3023399','3038221','3015559','3034211','3034732','3014422','3019927'))
+            FILTER(?eventNumValue > 5  )
+            
+        }
+ #BIND(xsd:date(?eventDate) as ?date)
+ FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+}
+}
+
+#c06_02_LabTshNoPregnancy_checkNOPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_02_LabTshNoPregnancy_emerge2_eventDate {
+        ?not_pregnant_patient fc:eventDate ?eventDate.
+    }
+}
+#SELECT*
+
+WHERE{
+          SELECT distinct ?not_pregnant_patient ?eventDate
+WHERE {
+    GRAPH fc:not_pregnant_patient_emerge2{
+        fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+    }
+
+    SERVICE <http://localhost:8080/sparql>
+        
+        {
+         ?observation a fhir:Observation;
+          fhir:Observation.subject [fhir:link ?not_pregnant_patient];
+            fhir:Observation.code ?ob_code.
+            ?ob_code fhir:CodeableConcept.id [fhir:value ?codes].
+         ?observation fhir:Observation.valueQuantity ?valueQuantity.
+         ?valueQuantity fhir:Quantity.value [fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for TSH lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ( '3001019','3004094','3005832','3006499','3007383','3015011','3019025','3028165','3044958','3048812','3051689','40759714','40761927','3006977','3030538','3035921','3038819','3040341','3045302','3046029','3052637','40760963','3004135','3011025','3017564','3027700','3030381','3030695','3050085','3052705','3005961','3006721','3009559','3017044','3019762','3030198','3040558','40760528','40768056','3005758','3011450','3016606','3017338','3029985','3052034','40766098','42870560','3009621','3014707','3019170','3028037','3030277','3037142','3040751','40758491','3028091','3029973','3040407','40766096','3001592','3016692','3016806','3030379','3037152','3043515','3051723','40766097','3003316','3008795','3016152','3016735','3027387','3045848','3052951','40761928','3009142','3013943','3024528','3030188','3032069','3038369','40758591','40766095','3047177','3029406','3001281','3005951','3030362','3005711','3030018','3002382','3006939','3018930','3022769','3047203','3009201','3023399','3038221','3015559','3034211','3034732','3014422','3019927'))
+            FILTER(?eventNumValue > 5  )
+            
+   }
+            
+}
+}
+
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#c06_03_LabFt4NoPregnancy_checkInPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_03_LabFt4NoPregnancy_emerge2_eventDate {
+          ?patient fc:eventDate ?eventDate.
+    }
+}
+#SELECT *
+WHERE{
+          SELECT distinct ?patient ?eventDate
+	WHERE {
+
+     GRAPH fc:pregnantPatients_emerge2  {
+        ?patient fc:pregnancystartDate ?pregnancystartDate.
+        ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+    SERVICE <http://localhost:8080/sparql>
+
+    	 {
+         ?observation a fhir:Observation;
+          fhir:Observation.subject [fhir:link ?patient];
+            fhir:Observation.code ?ob_code.
+            ?ob_code fhir:CodeableConcept.id [fhir:value ?codes].
+         ?observation fhir:Observation.valueQuantity ?valueQuantity.
+         ?valueQuantity fhir:Quantity.value [fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for FT4 lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ( '3001019','3016104','3040497','42868691','3028169','3015803','3016363','3039354','40760108','3028779','3007253','40760107','40761930','3024675','3026791','40761932','3020434','40760106','43533580','3004111','3008486','3016943','40760105','3006153','3032600','40761931','3004006','3000551','3008598','3011818'))
+            FILTER (?eventNumValue > -999) 
+            FILTER(?eventNumValue <0.5   )
+            
+  }
+   
+ FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+}
+}
+
+#c06_03_LabFt4NoPregnancy_checkNOPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_03_LabFt4NoPregnancy_emerge2_eventDate {
+        ?not_pregnant_patient fc:eventDate ?eventDate.
+    }
+}
+#SELECT *
+WHERE{
+          SELECT distinct ?not_pregnant_patient ?eventDate
+WHERE {
+        GRAPH fc:not_pregnant_patient_emerge2{
+           fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+        }
+
+
+    SERVICE <http://localhost:8080/sparql>
+        
+        {
+        
+         ?observation a fhir:Observation;
+          fhir:Observation.subject [fhir:link ?not_pregnant_patient];
+            fhir:Observation.code ?ob_code.
+            ?ob_code fhir:CodeableConcept.id [fhir:value ?codes].
+         ?observation fhir:Observation.valueQuantity ?valueQuantity.
+         ?valueQuantity fhir:Quantity.value [fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+ 
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for FT4 lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ( '3001019','3016104','3040497','42868691','3028169','3015803','3016363','3039354','40760108','3028779','3007253','40760107','40761930','3024675','3026791','40761932','3020434','40760106','43533580','3004111','3008486','3016943','40760105','3006153','3032600','40761931','3004006','3000551','3008598','3011818'))
+      
+            FILTER (?eventNumValue > -999) 
+            FILTER(?eventNumValue <0.5   )
+            
+ }
+                      
+}
+}
+
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#c06_04_LabAntiThyroperoxidaseNoPregnancy_checkInPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_04_LabAntiThyroperoxidaseNoPregnancy_emerge2_eventDate {
+          ?patient fc:eventDate ?eventDate.
+    }
+}
+WHERE{
+          SELECT distinct ?patient ?eventDate
+	WHERE {
+     GRAPH fc:pregnantPatients_emerge2  {
+        ?patient fc:pregnancystartDate ?pregnancystartDate.
+        ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+
+    SERVICE <http://localhost:8080/sparql> 
+        {
+    ?observation a fhir:Observation;
+                fhir:Observation.subject [fhir:link ?patient];
+                fhir:Observation.code ?ob_code.
+                ?ob_code fhir:CodeableConcept.id [ fhir:value ?codes].
+            ?observation fhir:Observation.valueQuantity ?valueQuantity.
+                ?valueQuantity fhir:Quantity.value [ fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for Anti-thyroperoxidas lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ('3008641','3015352','3035973','40766093','3020266','40766094','3027238','3028612','3025760','3025251','40759598','3005908','3043429'))
+            FILTER(?eventNumValue > 34)
+        
+    }
+
+ #BIND(xsd:date(?eventDateTime) as ?date)
+ FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+}
+}
+
+#c06_04_LabAntiThyroperoxidaseNoPregnancy_checkNOPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_04_LabAntiThyroperoxidaseNoPregnancy_emerge2_eventDate {
+        ?not_pregnant_patient fc:eventDate ?eventDate.
+    }
+}
+
+WHERE{
+          SELECT distinct ?not_pregnant_patient  ?eventDate
+WHERE {
+        GRAPH fc:not_pregnant_patient_emerge2{
+        fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+            }
+
+    SERVICE <http://localhost:8080/sparql> {
+            ?observation a fhir:Observation;
+                fhir:Observation.subject [fhir:link ?not_pregnant_patient];
+                fhir:Observation.code ?ob_code.
+                ?ob_code fhir:CodeableConcept.id [ fhir:value ?codes].
+            ?observation fhir:Observation.valueQuantity ?valueQuantity.
+                ?valueQuantity fhir:Quantity.value [ fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values            
+            # codes for Anti-thyroperoxidas lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ('3008641','3015352','3035973','40766093','3020266','40766094','3027238','3028612','3025760','3025251','40759598','3005908','3043429'))
+            FILTER(?eventNumValue > 34)
+        }
+}
+}
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#c06_05_LabAntiThyroglobulinNoPregnancy_checkInPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_05_LabAntiThyroglobulinNoPregnancy_emerge2_eventDate {
+          ?patient fc:eventDate ?eventDate.
+    }
+}
+
+WHERE{
+          SELECT distinct ?patient ?eventDate
+	WHERE {
+        GRAPH fc:pregnantPatients_emerge2  {
+        ?patient fc:pregnancystartDate ?pregnancystartDate.
+        ?patient fc:pregnancyendDate ?pregnancyendDate. 
+    }
+
+
+    SERVICE <http://localhost:8080/sparql> {
+
+            ?observation a fhir:Observation;
+                fhir:Observation.subject [fhir:link ?patient];
+                fhir:Observation.code ?ob_code.
+                ?ob_code fhir:CodeableConcept.id [ fhir:value ?codes].
+            ?observation fhir:Observation.valueQuantity ?valueQuantity.
+                ?valueQuantity fhir:Quantity.value [ fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            BIND("" AS ?eventStringValue)
+            # codes for FT4 lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ('3006219','40766092','3050633','3052732','3012085','40760890','3024857','40766091','3021200','3040051','3025547','40759656','40759754'))
+            FILTER(?eventNumValue >39 )
+        }
+      
+ #BIND(xsd:date(?eventDate) as ?date)
+ FILTER ((?eventDate > (?pregnancyendDate +  "P1Y"^^xsd:duration)) || (?pregnancystartDate >( ?eventDate + "P6M"^^xsd:duration) ))  
+
+}
+}
+
+
+#c06_05_LabAntiThyroglobulinNoPregnancy_checkNOPregnancy
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c06_05_LabAntiThyroglobulinNoPregnancy_emerge2_eventDate {
+        ?not_pregnant_patient fc:eventDate ?eventDate.
+    }
+}
+
+WHERE{
+          SELECT distinct ?not_pregnant_patient ?eventDate
+WHERE {
+        GRAPH fc:not_pregnant_patient_emerge2{
+          fc:not_pregnant_patient fc:contains ?not_pregnant_patient .
+            }
+
+    SERVICE <http://localhost:8080/sparql> {
+
+            ?observation a fhir:Observation;
+                fhir:Observation.subject [fhir:link ?not_pregnant_patient];
+                fhir:Observation.code ?ob_code.
+                ?ob_code fhir:CodeableConcept.id [ fhir:value ?codes].
+            ?observation fhir:Observation.valueQuantity ?valueQuantity.
+                ?valueQuantity fhir:Quantity.value [ fhir:value ?ob_quantity].
+            ?observation fhir:Observation.effectiveDateTime[fhir:value ?eventDateTime].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+            BIND(COALESCE(?ob_quantity, -999) AS ?eventNumValue)              # Use -999 as a placeholder for 'null' for numeric values
+            # codes for FT4 lab tests - OMOP CDM standardized LOINC codes
+            FILTER(?codes IN ('3006219','40766092','3050633','3052732','3012085','40760890','3024857','40766091','3021200','3040051','3025547','40759656','40759754'))
+            FILTER(?eventNumValue >39 )
+        }
+}
+}
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#c06_timeDiffRxLab
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+PREFIX ofn: <http://www.ontotext.com/sparql/functions/>
+
+INSERT {
+    GRAPH fc:c06_timeDiffRxLab_emerge2_eventDate {
+        ?patient fc:timeDiffRxLab ?timeDiffRxLab.
+    }
+}
+
+WHERE {
+    {
+        SELECT ?patient ?minDate ?maxDate
+        WHERE {
+            {
+                SELECT ?patient (MIN(?eventDate) AS ?minDate) (MAX(?eventDate) AS ?maxDate)
+                WHERE {
+                    {
+                        GRAPH fc:c06_01_RxCaseNoPregnancy_emerge2_eventDate {
+                            ?patient fc:eventDate ?eventDate.
+                        }
+                    }
+                    UNION
+                    {
+                        GRAPH fc:c06_02_LabTshNoPregnancy_emerge2_eventDate {
+                            ?patient fc:eventDate ?eventDate.
+                        }
+                    }
+                    UNION
+                    {
+                        GRAPH fc:c06_03_LabFt4NoPregnancy_emerge2_eventDate {
+                            ?patient fc:eventDate ?eventDate.
+                        }
+                    }
+                    UNION
+                    {
+                        GRAPH fc:c06_04_LabAntiThyroperoxidaseNoPregnancy_emerge2_eventDate {
+                            ?patient fc:eventDate ?eventDate.
+                        }
+                    }
+                    UNION
+                    {
+                        GRAPH fc:c06_05_LabAntiThyroglobulinNoPregnancy_emerge2_eventDate {
+                            ?patient fc:eventDate ?eventDate.
+                        }
+                    }
+                }
+                GROUP BY ?patient
+            }
+        }
+    }
+
+# Use the aggregated pool of minDate and maxDate to compute timeDiffRxLab
+ BIND (ofn:daysBetween(?minDate, ?maxDate) AS ?timeDiffRxLab)
+    FILTER(?timeDiffRxLab>=90)
+}

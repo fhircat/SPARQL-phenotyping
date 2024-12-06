@@ -1,0 +1,51 @@
+#==============================================================================================================================================
+#herpes_zoster_c01_dxZosterCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:herpes_zoster_c01_dxZosterCnt {
+			?patient fc:datecount ?datecount.
+    }
+}
+
+    WHERE {
+
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+        SELECT ?patient (count(distinct ?eventDate) AS ?datecount)
+
+       WHERE {
+        ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+             ?condition a fhir:Condition;
+            fhir:Condition.subject [fhir:link ?patient];
+            fhir:Condition.code[                    
+                    fhir:CodeableConcept.id[fhir:value ?dxZosterCodes]];
+            fhir:Condition.onsetDateTime[fhir:value ?eventDateTime].
+
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+        #getting patients with matching conditions in DxHerpesZoster or DxVaricellaZoster
+            FILTER(
+                #codes for DxHerpesZoster - OMOP CDM standardized ICD codes.
+                ?dxZosterCodes IN('21013407','21000169','21000166','21000167','21000165','21000168','21004617','372828','443943','138682','138965','192239','373412','381504','432546','438961','440323','4045976','376028','436336','437489','440329','35607128','36110918','36110920','35406348','36109991','36110924','36718098')
+ 				#codes for DxVaricellaZoster -  OMOP CDM standardized ICD codes.
+                || ?dxZosterCodes IN ('21007278','256036','380322','434272','437791','36009875','36110929','36110930')
+)
+
+        }
+          GROUP BY ?patient
+
+    } 
+    } 

@@ -1,0 +1,40 @@
+#===============================================================================================================================================================================================================================================================================================================
+#c09_noResult in initial 28000 patient
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+INSERT {
+    GRAPH fc:c09_procThyroidectomyCnt_emerge2 {
+        ?patient fc:datecount ?datecount .
+    }
+}
+WHERE{
+select ?patient (count(distinct ?eventDate) as ?datecount)
+    WHERE {
+            GRAPH fc:emergeCohort2 {
+                fc:cohort fc:contains ?patient .
+            }
+
+            SERVICE <http://localhost:8080/sparql> {
+				
+                   ?patient a fhir:Patient;
+                        fhir:Resource.id [ fhir:value ?patient_id].
+                     ?Procedure a fhir:Procedure;
+                      fhir:Procedure.subject [fhir:link ?patient];
+                      fhir:Procedure.performedDateTime[fhir:value ?eventDateTime];
+                      fhir:Procedure.code [
+                                fhir:CodeableConcept.id[fhir:value ?codes]];
+                    BIND(xsd:date(?eventDateTime) AS ?eventDate)
+                    # codes for Thyroidectomy therapies - OMOP CDM standardized CPT codes                
+                    FILTER(?codes IN ('2211919','2110370','2110367','2110369','2110365','2110374','2110375','2110372','2110373','2110376','2110371','2110385','2110384','2110383','2110368'))
+                
+            }
+        }
+        GROUP BY ?patient
+    }

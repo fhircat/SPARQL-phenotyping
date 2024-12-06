@@ -1,0 +1,54 @@
+#==============================================================================================================================================
+#herpes_zoster_c06_procChemoCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+PREFIX ofn: <http://www.ontotext.com/sparql/functions/>
+
+#getting the distinct patients with the count of the number of times they had chemotherapy within 180 days of the index date
+INSERT {
+    GRAPH fc:herpes_zoster_c06_procChemoCnt {
+			?patient fc:datecount ?datecount.
+    }
+}
+
+WHERE{
+ SELECT ?patient (count(distinct ?eventDate) AS ?datecount) 
+    WHERE {
+
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+    GRAPH fc:herpes_zoster_caseindexdt_Date {
+		?patient fc:indexDate ?indexDate.
+
+    }
+
+
+    SERVICE <http://localhost:8080/sparql>
+        {
+	
+        ?patient a fhir:Patient;
+            fhir:Resource.id [ fhir:value ?patient_id].
+            ?Procedure a fhir:Procedure;
+                  fhir:Procedure.subject [fhir:link ?patient];
+                  fhir:Procedure.performedDateTime[fhir:value ?eventDateTime];
+                  fhir:Procedure.code [
+                            fhir:CodeableConcept.id[fhir:value ?procChemo_codes]].
+            BIND(xsd:date(?eventDateTime) AS ?eventDate)
+
+            #getting patients with matching procedure of procChemo_codes(cancer chemotherapy infusion) using OMOP CDM standardized ICD, UB-04, G, CPT, CPT_HCPCS codes.
+            FILTER(
+                ?procChemo_codes IN ('2314231','2314227','2314229','2314225','2314220','2314221','2314222','2314223','2314233','2314236','2314237','2314232','2314240','2314238','2314235','2314234','2314246','2314248','2314257','2314255','2314256','42732724','42732725','42732723','42732722','42738941','42739887','42738932','42738936','2110448','2000011','2008271','2616278','2616276','2616277','2617778','2617779','2617781','2617780','2720578','2720576','2720574','2720577','2721477','2721478','2721476')
+            )
+         
+    }
+	FILTER(ofn:daysBetween(?indexDate,?eventDate) <=180  && (?indexDate>=?eventDate))
+    } 
+    GROUP BY ?patient 
+}

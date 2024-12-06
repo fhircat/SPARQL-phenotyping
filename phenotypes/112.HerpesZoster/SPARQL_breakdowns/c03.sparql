@@ -1,0 +1,85 @@
+#==============================================================================================================================================
+#herpes_zoster_c03_00_dxZosterForCaseCnt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+#setting up the temporary graph to store the visit year of the patients to be used in c03
+INSERT {
+    GRAPH fc:herpes_zoster_c03_00_ph_herpeszostertmpvisityear {
+			?patient fc:visitYear ?visitYear.
+    }
+}
+WHERE {
+SELECT DISTINCT ?patient ?visitYear 
+    WHERE {
+    
+    GRAPH fc:emergeCohort2{
+        fc:cohort fc:contains ?patient
+    }
+
+    SERVICE <http://localhost:8080/sparql> {
+        SELECT ?patient ?visitYear 
+        WHERE {
+            ?patient a fhir:Patient;
+                     fhir:Patient.birthDate [fhir:value ?birthdate];
+                     fhir:Resource.id [fhir:value ?patient_id].
+            ?encounter a fhir:Encounter;
+                       fhir:Encounter.subject [fhir:link ?patient];
+            fhir:Encounter.period [fhir:Period.start [fhir:value ?eventDate]].
+        #filter for encounter cases that have values in date
+			FILTER(BOUND(?eventDate))
+        #filter for patients who are at least 35 years old when the encounter occurred
+            FILTER ((xsd:integer(SUBSTR(STR(?eventDate), 1, 4)) - xsd:integer(SUBSTR(STR(?birthdate), 1, 4))) >= 35)
+        #assign the year to the visitYear variable
+			BIND (xsd:integer(SUBSTR(STR(?eventDate), 1, 4)) AS ?visitYear)
+        }
+            
+          
+    } 
+      
+
+}  GROUP BY ?patient ?visitYear 
+    }
+
+
+#--------------------------------------------------------------------------------------------
+#herpes_zoster_c03
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+PREFIX example: <http://example.org/>
+PREFIX example_graph: <http://example.org/graphs/>
+PREFIX fc: <http://fhircat.org/>
+
+#getting the patients with continuous visits for 5 years and the unique visit start year
+INSERT {
+    GRAPH fc:herpes_zoster_c03{
+			?patient fc:visit_sequence ?sequence_start.
+    }
+}
+where{
+SELECT ?patient (count(distinct(?v1)) as ?sequence_start)
+Where { 
+    GRAPH fc:herpes_zoster_c03_00_ph_herpeszostertmpvisityear {
+			?patient fc:visitYear ?v1.
+    }
+    BIND ((?v1+1) AS ?v2)
+    ?patient fc:visitYear ?v2.
+     BIND ((?v2+1) AS ?v3)
+    ?patient fc:visitYear ?v3.
+    BIND ((?v3+1) AS ?v4)
+    ?patient fc:visitYear ?v4.
+    BIND ((?v4+1) AS ?v5)
+    ?patient fc:visitYear ?v5.
+}
+# ?v5 - ?v1 = 4
+GROUP BY ?patient
+}
