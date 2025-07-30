@@ -1,0 +1,49 @@
+# T1 DM diagnosis
+
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+INSERT {
+    GRAPH fc:c00
+    { fc:c00 fc:contains ?patient }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+        SELECT DISTINCT ?patient ?code ?system ?display WHERE {
+            ?condition a fhir:Condition .
+            ?condition	fhir:Condition.subject	[ fhir:link ?patient ].
+            ?condition	fhir:Condition.code	[
+                fhir:CodeableConcept.coding [
+                    fhir:Coding.code    [ fhir:value    ?code    ];
+                    fhir:Coding.system  [ fhir:value    ?system  ];
+                    fhir:Coding.display [ fhir:value    ?display ]
+                ]
+            ].
+  FILTER ( str(?system) = 'SNOMED' && str(?code) = "46635009" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.11" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.21" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.31" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.41" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.51" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.61" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.71" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.81" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.93" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.83" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.73" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.63" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.53" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.43" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.33" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.23" ||
+    str(?system) = 'ICD9CM' && str(?code) = "250.13"
+  )
+        }
+      }
+}

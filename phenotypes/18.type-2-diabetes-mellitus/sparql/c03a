@@ -1,0 +1,28 @@
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+INSERT {
+    GRAPH fc:t1dm_meds
+    { fc:t1dm_meds fc:contains ?s }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+
+
+SELECT DISTINCT ?s ?code ?system ?display WHERE {
+		?s fhir:CodeableConcept.coding [
+            fhir:Coding.code    [ fhir:value    ?code    ];
+            fhir:Coding.system  [ fhir:value    ?system  ];
+            fhir:Coding.display [ fhir:value    ?display ]
+	    ] .
+	FILTER (str(?system) = 'RxNorm' )
+  FILTER(REGEX(STR(?code), '106892|311027|616237|311026|484320|616236'))
+}
+      }
+}

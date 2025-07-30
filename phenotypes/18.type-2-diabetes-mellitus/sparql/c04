@@ -1,0 +1,47 @@
+# Abnormal labs - Case
+
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+INSERT {
+    GRAPH fc:c04
+    { ?pat fc:abnormal_case_count ?abnormal_case_count }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+
+        SELECT ?pat (count(*) as ?abnormal_case_count)
+WHERE {
+?ob a fhir:Observation .
+  ?ob fhir:Observation.encounter [fhir:link ?encounter] .
+  ?ob fhir:Observation.subject [fhir:link ?pat ] .
+  ?ob fhir:Observation.effectiveDateTime [fhir:value ?datetime ] .
+  ?ob fhir:Observation.value [fhir:value ?labValue ] .
+  ?ob fhir:Observation.code [
+	    fhir:CodeableConcept.coding [
+	        fhir:Coding.code	[ fhir:value	?code  ];
+	        fhir:Coding.system	[ fhir:value	?system  ];
+	        fhir:Coding.display	[ fhir:value	?display  ]
+    ]   ] .
+  ?ob fhir:Observation.code ?cc .
+  ?ob fhir:Observation.status [fhir:value ?status ] .
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.value [fhir:value ?labValueQ] ] . }
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.unit [fhir:value ?labValueUnit] ] . }
+
+  FILTER (?system = "LOINC")
+  FILTER( (REGEX(STR(?code), '2339-0|2345-7') && ?labValueQ > 200) || # Random / ICU
+    (REGEX(STR(?code), '1558-6') && ?labValueQ >= 125) ||   # Fasting
+    (REGEX(STR(?code), '4548-4|17856-6|4549-2|17855-8') && ?labValueQ >= 6.5)) #Hb1Ac
+
+}
+GROUP BY ?pat
+
+
+        }
+      }

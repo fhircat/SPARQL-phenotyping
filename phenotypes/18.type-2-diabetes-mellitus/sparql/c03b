@@ -1,0 +1,39 @@
+#t1dm medication date
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+INSERT {
+    GRAPH fc:c03
+    { ?patient fc:t1_med_taken ?date  }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+      SELECT distinct ?patient ?ms ?med ?date ?code ?system ?display WHERE {
+          ?ms a   fhir:MedicationStatement .
+        	?ms fhir:MedicationStatement.subject [ fhir:link ?patient ].
+          ?ms fhir:MedicationStatement.medication ?cc .
+        ?ms fhir:MedicationStatement.effectiveDateTime ?ad .
+        ?ad fhir:value ?date .
+        ?cc fhir:CodeableConcept.coding [
+                  fhir:Coding.code    [ fhir:value    ?code    ];
+                  fhir:Coding.system  [ fhir:value    ?system  ];
+                  fhir:Coding.display [ fhir:value    ?display ]
+      	    ] .
+            FILTER (str(?system) = 'RxNorm' )
+          #    FILTER(REGEX(STR(?code), '847239'))
+          FILTER(CONTAINS(STR(?display), 'insulin'))
+          # FILTER(REGEX(STR(?display),  'acetohexamide|tolazamide|chlorpropamide|glipizide|glipizide|glyburide|glimepiride|repaglinide|nateglinide|metformin|rosiglitazone|pioglitazone|troglitazone|acarbose|miglitol|sitagliptin|exenatide'))
+
+      }
+
+
+
+}
+    }

@@ -1,0 +1,70 @@
+# T1 DM diagnosis
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+SELECT distinct ?patient {{
+SELECT distinct ?patient # ?t1_med_date ?t2_med_date
+WHERE
+  {
+
+    fc:c01 fc:contains ?patient . # Type II DM diagnosis
+    FILTER NOT EXISTS {fc:c00 fc:contains ?patient} # exclude Type I DM diagnosis
+#    MINUS {fc:c00 fc:contains ?patient} # exclude Type I DM (option 2 - works slightly differently: refer to documentation)
+            ?patient fc:t1_med_taken ?t1_med_date.
+            ?patient fc:t2_med_taken ?t2_med_date.
+            FILTER (?t2_med_date < ?t1_med_date)
+
+#    FILTER EXISTS {?patient fc:abnormal_case_count ?abnormal_count } # abnormal lab results
+
+
+        } }
+    UNION {
+SELECT distinct ?patient
+WHERE  {
+
+    fc:c01 fc:contains ?patient . # Type II DM diagnosis
+    FILTER NOT EXISTS {fc:c00 fc:contains ?patient} # exclude Type I DM diagnosis
+#    MINUS {fc:c00 fc:contains ?patient} # exclude Type I DM (option 2 - works slightly differently: refer to documentation)
+            ?patient fc:t1_med_taken ?t1_med_date.
+            MINUS { ?patient fc:t2_med_taken ?t2_med_date }
+            fc:c05 fc:contains ?patient. # multiple t2dm diag
+
+} }
+    UNION {
+        SELECT distinct ?patient
+WHERE  {
+            fc:c01 fc:contains ?patient . # Type II DM diagnosis
+    FILTER NOT EXISTS {fc:c00 fc:contains ?patient} # exclude Type I DM diagnosis
+#    MINUS {fc:c00 fc:contains ?patient} # exclude Type I DM (option 2 - works slightly differently: refer to documentation)
+    MINUS {?patient fc:t1_med_taken ?t1_med_date }
+    FILTER EXISTS { ?patient fc:t2_med_taken ?t2_med_date }
+
+    }}
+    UNION {
+        SELECT distinct ?patient
+WHERE  {
+    fc:c01 fc:contains ?patient . # Type II DM diagnosis
+    FILTER NOT EXISTS {fc:c00 fc:contains ?patient} # exclude Type I DM diagnosis
+#    MINUS {fc:c00 fc:contains ?patient} # exclude Type I DM (option 2 - works slightly differently: refer to documentation)
+    MINUS {?patient fc:t1_med_taken ?t1_med_date }
+    MINUS { ?patient fc:t2_med_taken ?t2_med_date }
+    FILTER EXISTS {?patient fc:abnormal_case_count ?abnormal_count } # abnormal lab results
+
+}
+    }
+    UNION {
+        SELECT distinct ?patient
+WHERE  {
+    ?patient fc:t2_med_taken ?t2_med_date .
+    FILTER NOT EXISTS {fc:c01 fc:contains ?patient } # exclude Type II DM diagnosis
+    FILTER NOT EXISTS {fc:c00 fc:contains ?patient} # exclude Type I DM diagnosis
+#    MINUS {fc:c00 fc:contains ?patient} # exclude Type I DM (option 2 - works slightly differently: refer to documentation)
+    FILTER EXISTS {?patient fc:abnormal_case_count ?abnormal_count } # abnormal lab results
+
+}
+    }
+
+}

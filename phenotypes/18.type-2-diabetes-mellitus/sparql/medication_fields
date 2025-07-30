@@ -1,0 +1,22 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+SELECT ?patient ?ms ?med ?date ?mcc ?cat ?context ?status ?status_value WHERE {
+    ?ms a   fhir:MedicationStatement .
+  	?ms fhir:MedicationStatement.subject ?temp .
+    ?temp fhir:link ?patient .
+    ?ms fhir:MedicationStatement.medication ?med .
+  ?ms fhir:MedicationStatement.effectiveDateTime ?ad .
+  ?ad fhir:value ?date .
+  ?ms fhir:MedicationStatement.medicationCodeableConcept ?mcc .
+  ?ms fhir:MedicationStatement.category ?cat .
+  ?ms fhir:MedicationStatement.context ?context .
+  ?ms fhir:MedicationStatement.status ?status .
+  ?status fhir:value ?status_value
+
+
+} LIMIT 100

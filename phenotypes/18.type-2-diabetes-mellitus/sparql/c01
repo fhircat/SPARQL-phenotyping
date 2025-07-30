@@ -1,0 +1,32 @@
+# T2 dm diagnosis
+
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+INSERT {
+    GRAPH fc:c01
+    { fc:c01 fc:contains ?patient }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+        SELECT DISTINCT ?patient ?code ?system ?display WHERE {
+            ?condition a fhir:Condition .
+            ?condition	fhir:Condition.subject	[ fhir:link ?patient ].
+            ?condition	fhir:Condition.code	[
+                fhir:CodeableConcept.coding [
+                    fhir:Coding.code    [ fhir:value    ?code    ];
+                    fhir:Coding.system  [ fhir:value    ?system  ];
+                    fhir:Coding.display [ fhir:value    ?display ]
+                ]
+            ].
+            FILTER (str(?code) = '44054006' )
+            FILTER (str(?system) = 'SNOMED' )
+        }
+      }
+}

@@ -1,0 +1,29 @@
+# visit count (encounters)
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+INSERT {
+    GRAPH fc:c10
+    { ?patient fc:visit_count ?count  }
+}
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+       SELECT ?patient (count(?enc) as ?count) WHERE {
+    ?enc a   fhir:Encounter .
+  ?enc w5:who.focus [ fhir:link ?patient] .
+
+}
+group by ?patient
+
+
+
+
+}
+    }

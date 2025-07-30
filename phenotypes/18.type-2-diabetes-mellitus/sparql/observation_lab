@@ -1,0 +1,31 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+
+SELECT *
+WHERE {
+?ob a fhir:Observation .
+  ?ob fhir:Observation.subject [fhir:link ?pat ] .
+  ?ob fhir:Observation.effectiveDateTime [fhir:value ?datetime ] .
+  ?ob fhir:Observation.value [fhir:value ?labValue ] .
+  ?ob fhir:Observation.code [
+	    fhir:CodeableConcept.coding [
+	        fhir:Coding.code	[ fhir:value	?code  ];
+	        fhir:Coding.system	[ fhir:value	?system  ];
+	        fhir:Coding.display	[ fhir:value	?display  ]
+    ]   ] .
+  ?ob fhir:Observation.status [fhir:value ?status ] .
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.value [fhir:value ?labValueQ] ] . }
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.unit [fhir:value ?labValueUnit] ] . }
+#  { ?ob fhir:Observation.valueQuantity [fhir:Quantity.value [fhir:value ?labValue] ] . }
+#   UNION {
+#  ?ob fhir:Observation.value [fhir:value ?labValue ] . }
+#  FILTER contains(str(?p1),"Observation")
+#  FILTER contains(str(?p1),"code")
+#  FILTER (?pat = <http://hl7.org/fhir/Patient/392790092>)
+  FILTER (?ob = <http://hl7.org/fhir/Observation/366404245>)
+}
+ORDER BY ?labValue
+LIMIT 10000

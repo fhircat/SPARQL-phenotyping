@@ -1,0 +1,20 @@
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+
+SELECT distinct *
+WHERE  {
+    ?patient fc:visit_count ?visit_count .
+    FILTER (?visit_count >= 2)
+    ?patient fc:glucose_lab_count ?glucose_lab_count .
+    FILTER (?glucose_lab_count >= 1)
+	FILTER NOT EXISTS { ?patient fc:abnormal_control_count ?abnormal_control_count . FILTER(?abnormal_control_count >   0) }
+    MINUS {?patient fc:t1_med_taken ?t1_date}
+    MINUS {?patient fc:t2_med_taken ?t2_date}
+
+}
+#ORDER BY ?abnormal_countrol_count

@@ -1,0 +1,60 @@
+# Abnormal labs - Control
+
+PREFIX fc: <http://fhircat.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX fhir: <http://hl7.org/fhir/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX w5: <http://hl7.org/fhir/w5#>
+
+#INSERT {
+#    GRAPH fc:c06
+#    { ?pat fc:abnormal_control_count ?abnormal_control_count }
+#}
+#SELECT *
+SELECT (COUNT(DISTINCT ?pat) as ?num_pat)
+WHERE
+  {
+    SERVICE <http://localhost:8088//sparql>
+      {
+
+        SELECT ?pat (count(distinct ?date) as ?abnormal_control_count)
+WHERE {
+?ob a fhir:Observation .
+#  ?ob fhir:Observation.encounter [fhir:link ?encounter] .
+  ?ob fhir:Observation.subject [fhir:link ?pat ] .
+  ?ob fhir:Observation.effectiveDateTime [fhir:value ?datetime ] .
+            bind(xsd:date(?datetime) as ?date).
+            optional {?ob fhir:Observation.value [fhir:value ?labValue ] . }
+  ?ob fhir:Observation.code [
+	    fhir:CodeableConcept.coding [
+	        fhir:Coding.code	[ fhir:value	?code  ];
+	        fhir:Coding.system	[ fhir:value	?system  ];
+	        fhir:Coding.display	[ fhir:value	?display  ]
+    ]   ] .
+  OPTIONAL { ?ob fhir:Observation.code ?cc . }
+  OPTIONAL { ?ob fhir:Observation.status [fhir:value ?status ] . }
+
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.value [fhir:value ?labValueQ] ] . }
+  OPTIONAL { ?ob fhir:Observation.valueQuantity [fhir:Quantity.unit [fhir:value ?labValueUnit] ] . }
+
+  FILTER (?system = "LOINC")
+  FILTER(
+                (?code in ('2339-0', '2345-7') && (xsd:decimal(?labValue) > 110.0)  ) || # Random / ICU
+    (?code = '1558-6' && (xsd:decimal(?labValue) >= 110.0)  ) ||   # Fasting
+                (?code in ('4548-4', '17856-6','4549-2','17855-8') && (xsd:decimal(?labValue) >= 6.0))
+            ) #Hb1Ac
+
+
+
+#  FILTER ()
+
+
+
+
+}
+GROUP BY ?pat
+
+
+        }
+      }
